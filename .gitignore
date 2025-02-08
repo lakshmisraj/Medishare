@@ -1,0 +1,57 @@
+# Byte-compiled / cached files
+__pycache__/
+*.py[cod]
+*.so
+*.swp
+.DS_Store
+
+# Virtual environments
+venv_311/
+venv/
+env/
+ENV/
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# Environment variables & secrets
+.env
+*.env
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.iml
+
+# Python package files
+*.egg-info/
+dist/
+build/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# MongoDB & database dumps
+*.dump
+*.bak
+*.sqlite3
+dump.rdb
+
+# FastAPI cache
+__pypackages__/
+.cache/
+
+# Streamlit cache
+.streamlit/
+.db/
+
+# Node.js dependencies (if frontend uses Node.js)
+node_modules/
+
+# macOS & Linux system files
+Thumbs.db
+*.DS_Store
