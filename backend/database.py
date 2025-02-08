@@ -20,3 +20,7 @@ db = client.medishare
 users_collection = db.users
 profiles_collection = db.profiles
 medical_history_collection = db.medical_history
+fitness_collection = db.fitness
+vaccines_collection = db.vaccines
+medical_conditions_collection = db.medical_conditions
+family_medical_history_collection = db.family_medical_history
