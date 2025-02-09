@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from database import profiles_collection, fitness_collection, vaccines_collection, medical_conditions_collection, family_medical_history_collection
+import requests
+import os
 
 app = FastAPI()
 
@@ -42,3 +44,46 @@ def get_user_family_medical_history(user_id: str):
     if not family_medical_history:
         raise HTTPException(status_code=404, detail="No family medical history found for this user.")
     return {"family_medical_history": family_medical_history}
+
+
+# Hugging Face API setup
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"  # Replace with your Hugging Face model URL
+HUGGINGFACE_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN")#"HUGGINGFACE_API_TOKEN"  # Replace with your Hugging Face token
+
+# Function to get the response from Hugging Face API
+def get_huggingface_response(user_input: str):
+    headers = {
+        "Authorization": f"Bearer {HUGGINGFACE_API_TOKEN}"
+    }
+
+    # Prepare the data payload for Hugging Face API
+    data = {
+        "inputs": user_input
+    }
+    try:
+    # Make the request to Hugging Face API
+        response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
+
+        print(f"Response Status Code: {response.status_code}")
+        print(f"Response Content: {response.text}")
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Error while fetching response from Hugging Face API")
+
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Request Exception: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in Hugging Face API request: {e}")
+
+# FastAPI endpoint to interact with the Hugging Face API
+@app.get("/chat/{user_input}")
+def chat(user_input: str):
+    try:
+        # Get response from Hugging Face
+        chatbot_response = get_huggingface_response(user_input)
+        return {"response": chatbot_response}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Unexpected error: {e}")  # Log the error
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
