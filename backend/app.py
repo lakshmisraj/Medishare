@@ -45,6 +45,20 @@ def get_user_family_medical_history(user_id: str):
         raise HTTPException(status_code=404, detail="No family medical history found for this user.")
     return {"family_medical_history": family_medical_history}
 
+@app.get("/fitness/{user_id}")
+def get_latest_user_fitness(user_id: str):
+    # Fetch the latest fitness record for the specific user
+    latest_fitness = fitness_collection.find_one(
+        {"user_id": user_id}, 
+        {"_id": 0}, 
+        sort=[("date", -1)]  # Sort by date descending to get the latest entry
+    )
+    
+    if not latest_fitness:
+        raise HTTPException(status_code=404, detail="No fitness record found for this user.")
+    
+    return {"fitness": latest_fitness}
+
 
 # Hugging Face API setup
 HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"  # Replace with your Hugging Face model URL
@@ -58,7 +72,12 @@ def get_huggingface_response(user_input: str):
 
     # Prepare the data payload for Hugging Face API
     data = {
-        "inputs": user_input
+        "inputs": user_input,
+        "parameters": {
+            "max_new_tokens": 150,  # Ensures the model generates new text
+            "temperature": 0.7,  # Adjusts randomness in responses
+            "top_p": 0.9  # Helps with diversity in responses
+        }
     }
     try:
     # Make the request to Hugging Face API
@@ -86,4 +105,37 @@ def chat(user_input: str):
         raise e
     except Exception as e:
         print(f"Unexpected error: {e}")  # Log the error
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+    
+def format_fitness_data(fitness_data):
+    """Formats fitness data into a readable string."""
+    if not fitness_data or "fitness" not in fitness_data:
+        return "No recent fitness data available."
+    data = fitness_data["fitness"]
+    return (f"On {data['date']}, the user did {data['activity']} for {data['duration_hours']} hours, "
+            f"burning {data['calories_burned']} calories. They walked {data['steps']} steps and slept for "
+            f"{data['sleep_hours']} hours.")
+
+# API Endpoint: Chatbot with Fitness Advice
+@app.get("/chat/{user_id}/{user_input}")
+def chat(user_id: str, user_input: str):
+    try:
+        # Fetch fitness data
+        fitness_data = get_latest_user_fitness(user_id)
+        fitness_summary = format_fitness_data(fitness_data)
+        
+        # Format user message with fitness info
+        #fitness_summary = f"User activity: {fitness_data['activity']}, Calories burned: {fitness_data['calories_burned']}, Steps: {fitness_data['steps']}."
+        combined_input = f"{user_input}. Based on the user's fitness history: {fitness_summary} What advice can you give?"
+        
+        print(f"Combined Input: {combined_input}")
+        # Get chatbot response
+        chatbot_response = get_huggingface_response(combined_input)
+
+        return {"response": chatbot_response, "fitness_data": fitness_data}
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
